@@ -1,0 +1,8 @@
+# Local secrets and runtime files
+.env
+.env.*
+!.env.example
+*.log
+/vendor/
+.dart_tool/
+build/

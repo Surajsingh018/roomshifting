@@ -1,0 +1,119 @@
+-- RoomShift Phase 06 CMS/catalog. Additive, safe for existing rows.
+-- Target: XAMPP MariaDB 10.4+ (supports ADD COLUMN IF NOT EXISTS).
+CREATE TABLE IF NOT EXISTS schema_migrations (
+  version VARCHAR(64) PRIMARY KEY,
+  applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS services (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(120) NOT NULL,
+  slug VARCHAR(140) NULL,
+  description TEXT NULL,
+  base_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  pricing_type ENUM('fixed','quote') NOT NULL DEFAULT 'quote',
+  status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+  seo_title VARCHAR(255) NULL,
+  seo_desc VARCHAR(320) NULL,
+  canonical_url VARCHAR(500) NULL,
+  og_image VARCHAR(500) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_services_slug (slug),
+  INDEX idx_services_status_name (status, name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE services ADD COLUMN IF NOT EXISTS slug VARCHAR(140) NULL;
+ALTER TABLE services ADD COLUMN IF NOT EXISTS pricing_type ENUM('fixed','quote') NOT NULL DEFAULT 'quote';
+ALTER TABLE services ADD COLUMN IF NOT EXISTS seo_title VARCHAR(255) NULL;
+ALTER TABLE services ADD COLUMN IF NOT EXISTS seo_desc VARCHAR(320) NULL;
+ALTER TABLE services ADD COLUMN IF NOT EXISTS canonical_url VARCHAR(500) NULL;
+ALTER TABLE services ADD COLUMN IF NOT EXISTS og_image VARCHAR(500) NULL;
+ALTER TABLE services ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+UPDATE services SET slug=CONCAT('service-', id) WHERE slug IS NULL OR slug='';
+ALTER TABLE services MODIFY COLUMN slug VARCHAR(140) NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_services_slug ON services (slug);
+
+CREATE TABLE IF NOT EXISTS service_areas (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(120) NOT NULL,
+  slug VARCHAR(140) NOT NULL UNIQUE,
+  pincode VARCHAR(20) NULL,
+  city VARCHAR(120) NOT NULL,
+  region VARCHAR(120) NULL,
+  description TEXT NULL,
+  status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+  seo_title VARCHAR(255) NULL,
+  seo_desc VARCHAR(320) NULL,
+  canonical_url VARCHAR(500) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_service_areas_status_city (status, city),
+  INDEX idx_service_areas_pincode (pincode)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE service_areas ADD COLUMN IF NOT EXISTS pincode VARCHAR(20) NULL;
+ALTER TABLE service_areas ADD COLUMN IF NOT EXISTS seo_desc VARCHAR(320) NULL;
+ALTER TABLE service_areas ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+CREATE INDEX IF NOT EXISTS idx_service_areas_pincode ON service_areas (pincode);
+
+CREATE TABLE IF NOT EXISTS pages (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(180) NOT NULL,
+  slug VARCHAR(180) NOT NULL UNIQUE,
+  body LONGTEXT NOT NULL,
+  status ENUM('draft','published') NOT NULL DEFAULT 'draft',
+  seo_title VARCHAR(255) NULL,
+  seo_desc VARCHAR(320) NULL,
+  canonical_url VARCHAR(500) NULL,
+  og_title VARCHAR(255) NULL,
+  og_description VARCHAR(320) NULL,
+  og_image VARCHAR(500) NULL,
+  published_at DATETIME NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_pages_status_published (status, published_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+ALTER TABLE pages ADD COLUMN IF NOT EXISTS seo_desc VARCHAR(320) NULL;
+ALTER TABLE pages ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
+CREATE TABLE IF NOT EXISTS faqs (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  question VARCHAR(500) NOT NULL,
+  answer TEXT NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_faq_status_order (status, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS banners (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(180) NOT NULL,
+  body TEXT NULL,
+  image_path VARCHAR(500) NULL,
+  link_url VARCHAR(500) NULL,
+  starts_at DATETIME NULL,
+  ends_at DATETIME NULL,
+  status ENUM('active','inactive') NOT NULL DEFAULT 'inactive',
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_banners_schedule (status, starts_at, ends_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS offers (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(180) NOT NULL,
+  code VARCHAR(50) NULL UNIQUE,
+  description TEXT NULL,
+  discount_type ENUM('fixed','percent') NOT NULL,
+  discount_value DECIMAL(10,2) NOT NULL,
+  starts_at DATETIME NULL,
+  ends_at DATETIME NULL,
+  status ENUM('active','inactive') NOT NULL DEFAULT 'inactive',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_offers_schedule (status, starts_at, ends_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO schema_migrations(version) VALUES ('003_cms_catalog');

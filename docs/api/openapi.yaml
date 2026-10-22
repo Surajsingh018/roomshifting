@@ -1,0 +1,529 @@
+openapi: 3.0.3
+info:
+  title: RoomShift API
+  version: 1.0.0
+  description: RoomShift API contract for authentication, CMS/catalog, enquiries, server-calculated quotes, bookings and operational workflows. All responses use the shared success/data/message/error_code envelope.
+servers:
+  - url: http://localhost/roomshift/api
+    description: XAMPP local development
+tags:
+  - name: Authentication
+  - name: Services
+  - name: CMS Catalog
+  - name: Enquiries
+  - name: Pricing and Quotes
+  - name: Bookings and Tracking
+  - name: Payments
+  - name: Reviews
+  - name: Notifications
+paths:
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Sign in an admin or staff user and issue a bearer token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string, maxLength: 50 }
+                password: { type: string, format: password, maxLength: 4096 }
+      responses:
+        '200': { description: Authenticated, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      security: [{ bearerAuth: [] }]
+      summary: Revoke the current bearer token
+      responses:
+        '200': { description: Token revoked, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+  /services:
+    get:
+      tags: [Services]
+      summary: List active services
+      parameters:
+        - { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+        - { in: query, name: status, schema: { type: string, enum: [active, inactive, all], default: active } }
+        - { in: query, name: search, schema: { type: string, maxLength: 100 } }
+      responses:
+        '200': { description: Service records and pagination, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Services]
+      security: [{ bearerAuth: [] }]
+      summary: Create a service
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ServiceInput' }
+      responses:
+        '201': { description: Service created, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [Services]
+      security: [{ bearerAuth: [] }]
+      summary: Update service fields
+      parameters: [{ in: query, name: id, required: true, schema: { type: integer, minimum: 1 } }]
+      responses:
+        '200': { description: Service updated, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+    patch:
+      tags: [Services]
+      security: [{ bearerAuth: [] }]
+      summary: Partially update service fields
+      parameters: [{ in: query, name: id, required: true, schema: { type: integer, minimum: 1 } }]
+      responses:
+        '200': { description: Service updated, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+    delete:
+      tags: [Services]
+      security: [{ bearerAuth: [] }]
+      summary: Soft-disable a service
+      parameters: [{ in: query, name: id, required: true, schema: { type: integer, minimum: 1 } }]
+      responses:
+        '200': { description: Service disabled, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+  /services/{slug}:
+    get:
+      tags: [Services]
+      summary: Get an active service by slug
+      parameters:
+        - { in: path, name: slug, required: true, schema: { type: string, maxLength: 160 } }
+      responses:
+        '200': { description: Service from MySQL, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '404': { $ref: '#/components/responses/Error' }
+  /service-areas:
+    get:
+      tags: [CMS Catalog]
+      summary: List active service areas, optionally filtered by city or pincode
+      parameters:
+        - { in: query, name: search, schema: { type: string, maxLength: 100 } }
+        - { in: query, name: city, schema: { type: string, maxLength: 100 } }
+        - { in: query, name: pincode, schema: { type: string, maxLength: 12 } }
+        - { in: query, name: status, schema: { type: string, enum: [active, inactive, all], default: active }, description: 'Non-active status values require an admin or staff bearer token.' }
+        - { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200': { description: Database-backed service areas with pagination, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+  /pages/{slug}:
+    get:
+      tags: [CMS Catalog]
+      summary: Get a published CMS page by slug
+      parameters:
+        - { in: path, name: slug, required: true, schema: { type: string, maxLength: 160 } }
+      responses:
+        '200': { description: Published page from MySQL, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '404': { $ref: '#/components/responses/Error' }
+  /faqs:
+    get:
+      tags: [CMS Catalog]
+      summary: List active FAQs
+      parameters:
+        - { in: query, name: search, schema: { type: string, maxLength: 100 } }
+        - { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200': { description: Database-backed FAQs with pagination, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+  /banners:
+    get:
+      tags: [CMS Catalog]
+      summary: List currently active banners within their optional schedule
+      responses:
+        '200': { description: Active banners from MySQL, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+  /offers:
+    get:
+      tags: [CMS Catalog]
+      summary: List currently active offers within their optional schedule
+      responses:
+        '200': { description: Active offers from MySQL, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+  /enquiries:
+    post:
+      tags: [Enquiries]
+      summary: Create an enquiry (idempotent)
+      description: Rate limited. Repeating an idempotency_key with identical enquiry data returns the original record; reusing it with changed data returns 409. A signed enquiry_token is returned as the capability to calculate quotes for that enquiry. Client supplied prices or totals are rejected.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EnquiryInput' }
+      responses:
+        '201': { description: Enquiry created, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '200': { description: Existing enquiry returned for a repeated idempotency key, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    get:
+      tags: [Enquiries]
+      security: [{ bearerAuth: [] }]
+      summary: List enquiries (admin/staff)
+      parameters:
+        - { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200': { description: Enquiries and pagination, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+  /quotes/calculate:
+    post:
+      tags: [Pricing and Quotes]
+      summary: Calculate and persist an authoritative quote for an enquiry
+      description: enquiry_id and its signed enquiry_token are required. All rates come from database pricing_rules and all totals are calculated by the server.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [enquiry_id, enquiry_token]
+              properties:
+                enquiry_id: { type: integer, minimum: 1 }
+                enquiry_token: { type: string, pattern: '^[a-f0-9]{64}$' }
+      responses:
+        '200': { description: Server-calculated quote and itemized breakdown, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /quotes/{id}:
+    get:
+      tags: [Pricing and Quotes]
+      summary: Retrieve a saved quote by ID and capability token (or admin/staff bearer token)
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer, minimum: 1 } }
+        - { in: query, name: token, required: false, schema: { type: string, pattern: '^[a-f0-9]{64}$' }, description: Required for public access; admin/staff may use bearer authorization instead. }
+      responses:
+        '200': { description: Saved quote and calculation breakdown, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '404': { $ref: '#/components/responses/Error' }
+  /bookings:
+    post:
+      tags: [Bookings and Tracking]
+      summary: Create an idempotent booking from a valid quote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [quote_id, quote_token, idempotency_key]
+              properties:
+                quote_id: { type: integer, minimum: 1 }
+                quote_token: { type: string, pattern: '^[a-f0-9]{64}$' }
+                idempotency_key: { type: string, minLength: 8, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$' }
+      responses:
+        '201': { description: Booking created with private tracking code, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '200': { description: Existing booking returned for repeated key, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '409': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+    get:
+      tags: [Bookings and Tracking]
+      security: [{ bearerAuth: [] }]
+      summary: List bookings for admin or staff
+      parameters:
+        - { in: query, name: status, schema: { type: string, enum: [enquiry, quote, confirmed, assigned, in_transit, completed, cancelled] } }
+        - { in: query, name: search, schema: { type: string, maxLength: 120 } }
+        - { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200': { description: Filtered booking records, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+  /bookings/track:
+    get:
+      tags: [Bookings and Tracking]
+      summary: Public tracking by private tracking code
+      parameters:
+        - { in: query, name: code, required: true, schema: { type: string, pattern: '^[A-F0-9]{16}$' } }
+      responses:
+        '200': { description: Tracking status and audit timeline, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '404': { $ref: '#/components/responses/Error' }
+  /bookings/{id}/track:
+    get:
+      tags: [Bookings and Tracking]
+      summary: Public tracking by booking ID and private tracking code
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer, minimum: 1 } }
+        - { in: query, name: code, required: true, schema: { type: string, pattern: '^[A-F0-9]{16}$' } }
+      responses:
+        '200': { description: Tracking status and audit timeline, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '404': { $ref: '#/components/responses/Error' }
+  /bookings/{id}/status:
+    patch:
+      tags: [Bookings and Tracking]
+      security: [{ bearerAuth: [] }]
+      summary: Change status using the server-validated booking state machine (admin only)
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [status]
+              properties:
+                status: { type: string, enum: [enquiry, quote, confirmed, assigned, in_transit, completed, cancelled] }
+                note: { type: string, maxLength: 500 }
+      responses:
+        '200': { description: Transition stored with audit history, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /bookings/{id}/assignment:
+    patch:
+      tags: [Bookings and Tracking]
+      security: [{ bearerAuth: [] }]
+      summary: Assign or reassign an active staff member (admin only)
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [staff_id]
+              properties:
+                staff_id: { type: integer, minimum: 1 }
+                note: { type: string, maxLength: 500 }
+      responses:
+        '200': { description: Staff assignment persisted with booking state transition, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /bookings/{id}/tracking-events:
+    post:
+      tags: [Bookings and Tracking]
+      security: [{ bearerAuth: [] }]
+      summary: Add an authorized location, pickup, delivery, or proof event
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [event_type]
+              properties:
+                event_type: { type: string, enum: [location_update, pickup, delivery, proof] }
+                location_label: { type: string, maxLength: 255 }
+                note: { type: string, maxLength: 500 }
+                proof_path: { type: string, maxLength: 500 }
+      responses:
+        '201': { description: Tracking event persisted, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /payments:
+    post:
+      tags: [Payments]
+      summary: Start a COD or online-placeholder payment for a tracked booking
+      description: Amount is read from the booking. Online provider processing remains disabled until configured; no payment success is simulated.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [booking_id, tracking_code, idempotency_key, method]
+              properties:
+                booking_id: { type: integer, minimum: 1 }
+                tracking_code: { type: string, pattern: '^[A-F0-9]{16}$' }
+                idempotency_key: { type: string, minLength: 8, maxLength: 128 }
+                method: { type: string, enum: [cod, online] }
+      responses:
+        '201': { description: Pending payment record, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '200': { description: Existing idempotent payment, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '429': { $ref: '#/components/responses/Error' }
+    get:
+      tags: [Payments]
+      security: [{ bearerAuth: [] }]
+      summary: List payment records for staff
+      responses:
+        '200': { description: Payment records, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+  /payments/webhook:
+    post:
+      tags: [Payments]
+      summary: Process an idempotent signed payment-provider event
+      description: Requires X-RoomShift-Signature containing the HMAC-SHA256 of the exact request body and ROOMSHIFT_PAYMENT_WEBHOOK_SECRET in the environment.
+      parameters:
+        - { in: header, name: X-RoomShift-Signature, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [event_id, payment_reference, status]
+              properties:
+                event_id: { type: string, maxLength: 190 }
+                payment_reference: { type: string, maxLength: 190 }
+                status: { type: string, enum: [authorized, paid, failed, refunded] }
+      responses:
+        '200': { description: Webhook applied or duplicate ignored, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /reviews:
+    get:
+      tags: [Reviews]
+      summary: List approved reviews
+      parameters:
+        - { in: query, name: moderation, schema: { type: string, enum: ['0','1'] }, description: 'Set 1 with staff bearer authorization to view all moderation states.' }
+      responses:
+        '200': { description: Approved reviews or authorized moderation list, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+    post:
+      tags: [Reviews]
+      summary: Submit a review for a completed booking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [booking_id, tracking_code, rating, idempotency_key]
+              properties:
+                booking_id: { type: integer, minimum: 1 }
+                tracking_code: { type: string, pattern: '^[A-F0-9]{16}$' }
+                rating: { type: integer, minimum: 1, maximum: 5 }
+                comment: { type: string, maxLength: 3000 }
+                idempotency_key: { type: string, minLength: 8, maxLength: 128 }
+      responses:
+        '201': { description: Review saved for moderation, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '409': { $ref: '#/components/responses/Error' }
+  /reviews/{id}/moderation:
+    patch:
+      tags: [Reviews]
+      security: [{ bearerAuth: [] }]
+      summary: Approve or reject a review (admin only)
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [approved, rejected] }
+                note: { type: string, maxLength: 500 }
+      responses:
+        '200': { description: Moderation saved, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '403': { $ref: '#/components/responses/Error' }
+  /notifications:
+    get:
+      tags: [Notifications]
+      security: [{ bearerAuth: [] }]
+      summary: View the notification delivery queue
+      responses:
+        '200': { description: Queued and delivered notification records, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Notifications]
+      security: [{ bearerAuth: [] }]
+      summary: Add a notification job to the queue (admin or staff)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [recipient, channel, template_key, payload]
+              properties:
+                booking_id: { type: integer, minimum: 1 }
+                recipient: { type: string, maxLength: 190 }
+                channel: { type: string, enum: [email, sms, push, internal] }
+                template_key: { type: string, maxLength: 100 }
+                payload: { type: object }
+      responses:
+        '201': { description: Notification queued, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+  schemas:
+    Envelope:
+      type: object
+      required: [success, data, message, error_code]
+      properties:
+        success: { type: boolean }
+        data: { nullable: true }
+        message: { type: string }
+        error_code: { type: string, nullable: true }
+    ServiceInput:
+      type: object
+      required: [name, base_price]
+      properties:
+        name: { type: string, maxLength: 100 }
+        description: { type: string, maxLength: 10000 }
+        base_price: { type: number, minimum: 0 }
+        status: { type: string, enum: [active, inactive] }
+    EnquiryInput:
+      type: object
+      additionalProperties: false
+      required: [idempotency_key, name, phone, service_id, from_address, to_address, distance_km]
+      properties:
+        idempotency_key: { type: string, minLength: 8, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$' }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        email: { type: string, format: email, maxLength: 190 }
+        phone: { type: string, minLength: 7, maxLength: 25 }
+        message: { type: string, maxLength: 3000 }
+        service_id: { type: integer, minimum: 1 }
+        from_address: { type: string, minLength: 1, maxLength: 500 }
+        to_address: { type: string, minLength: 1, maxLength: 500 }
+        floors: { type: integer, minimum: 0, maximum: 100, default: 0 }
+        distance_km: { type: number, minimum: 0, maximum: 10000 }
+        packing_required: { type: boolean, default: false }
+        inventory:
+          type: array
+          maxItems: 100
+          items:
+            type: object
+            additionalProperties: false
+            required: [item, quantity]
+            properties:
+              item: { type: string, minLength: 1, maxLength: 120 }
+              quantity: { type: integer, minimum: 1, maximum: 10000 }
+    QuoteBreakdown:
+      type: object
+      required: [currency, base_price, distance_charge, floor_charge, packing_charges, subtotal, gst, total]
+      properties:
+        currency: { type: string, enum: [INR] }
+        base_price: { type: string }
+        distance_km: { type: string }
+        per_km: { type: string }
+        distance_charge: { type: string }
+        floors: { type: integer }
+        per_floor: { type: string }
+        floor_charge: { type: string }
+        packing_required: { type: boolean }
+        packing_charges: { type: string }
+        calculated_subtotal: { type: string }
+        minimum_charge: { type: string }
+        subtotal: { type: string }
+        gst_percent: { type: string }
+        gst: { type: string }
+        total: { type: string }
+    ErrorEnvelope:
+      allOf: [{ $ref: '#/components/schemas/Envelope' }]
+  responses:
+    Error:
+      description: Standard error envelope
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }

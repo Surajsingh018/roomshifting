@@ -1,0 +1,27 @@
+Options -Indexes
+RewriteEngine On
+
+# Direct access to the nested folder remains useful during local development.
+RewriteBase /roomshift/roomshift/
+RewriteCond %{HTTP:Authorization} ^(.+)$
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]
+RewriteRule ^api/index\.php$ - [END]
+RewriteRule ^api/?$ api/index.php [QSA,END]
+RewriteRule ^api/(.+)$ api/index.php?route=$1 [QSA,END]
+RewriteRule ^sitemap\.xml$ website/sitemap.php [QSA,END]
+RewriteRule ^robots\.txt$ website/robots.php [QSA,END]
+RewriteRule ^css/(.+)$ website/css/$1 [QSA,END]
+RewriteRule ^js/(.+)$ website/js/$1 [QSA,END]
+RewriteRule ^$ website/index.php [QSA,END]
+
+RewriteCond %{REQUEST_URI} !^/roomshift/roomshift/(api|admin|backend|config|database|docs|includes|migrations|assets|public|website)(/|$) [NC]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^([^/]+\.php)$ website/$1 [QSA,END]
+
+<FilesMatch "^\.env(\..*)?$">
+  Require all denied
+</FilesMatch>
+
+ErrorDocument 404 /roomshift/roomshift/public/404.php
+ErrorDocument 500 /roomshift/roomshift/public/500.php
