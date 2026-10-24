@@ -1,8 +1,79 @@
 <?php
-declare(strict_types=1);require_once __DIR__.'/includes/ui.php';
-$notice='';if($_SERVER['REQUEST_METHOD']==='POST'){admin_verify_csrf();$id=filter_var($_POST['id']??null,FILTER_VALIDATE_INT);$status=(string)($_POST['status']??'');if(!$id||!in_array($status,['new','in_progress','closed'],true)){http_response_code(422);exit('Invalid enquiry update.');}$stmt=$pdo->prepare('UPDATE enquiries SET status=? WHERE id=?');$stmt->execute([$status,$id]);$notice='Enquiry status saved.';}
-$page=max(1,(int)($_GET['page']??1));$limit=25;$search=trim((string)($_GET['q']??''));$status=trim((string)($_GET['status']??''));$where=[];$params=[];
-if($search!==''){$where[]='(name LIKE ? OR phone LIKE ? OR email LIKE ? OR message LIKE ?)';for($i=0;$i<4;$i++)$params[]='%'.$search.'%';}
-if($status!==''&&in_array($status,['new','in_progress','closed'],true)){$where[]='status=?';$params[]=$status;}
-$whereSql=$where?' WHERE '.implode(' AND ',$where):'';$count=$pdo->prepare('SELECT COUNT(*) FROM enquiries'.$whereSql);$count->execute($params);$total=(int)$count->fetchColumn();$stmt=$pdo->prepare('SELECT id,name,email,phone,message,service_id,from_address,to_address,status,created_at FROM enquiries'.$whereSql.' ORDER BY id DESC LIMIT ? OFFSET ?');foreach($params as $i=>$v)$stmt->bindValue($i+1,$v);$stmt->bindValue(count($params)+1,$limit,PDO::PARAM_INT);$stmt->bindValue(count($params)+2,($page-1)*$limit,PDO::PARAM_INT);$stmt->execute();$rows=$stmt->fetchAll();
-admin_page_start('Enquiries'); ?><h1 class="h2 mb-4">Enquiries</h1><?php if($notice): ?><div class="alert alert-success"><?= e($notice) ?></div><?php endif; ?><section class="card"><div class="card-body"><form class="row g-2 mb-3"><div class="col-md-7"><label class="visually-hidden" for="q">Search enquiries</label><input class="form-control" id="q" name="q" value="<?= e($search) ?>" placeholder="Search name, phone, email or message"></div><div class="col-md-3"><label class="visually-hidden" for="statusFilter">Status</label><select class="form-select" id="statusFilter" name="status"><option value="">All statuses</option><?php foreach(['new','in_progress','closed'] as $v): ?><option value="<?= e($v) ?>" <?= $status===$v?'selected':'' ?>><?= e($v) ?></option><?php endforeach; ?></select></div><div class="col-md-2"><button class="btn btn-outline-dark w-100">Filter</button></div></form><div class="table-responsive"><table class="table"><thead><tr><th>Name</th><th>Contact</th><th>Move</th><th>Message</th><th>Status</th><th>Received</th></tr></thead><tbody><?php foreach($rows as $r): ?><tr><td><?= e($r['name']) ?></td><td><?= e($r['phone']) ?><br><small><?= e($r['email']) ?></small></td><td><?= e($r['from_address']) ?> → <?= e($r['to_address']) ?></td><td><?= e(mb_strimwidth((string)$r['message'],0,100,'…')) ?></td><td><form method="post" class="d-flex gap-1"><input type="hidden" name="_csrf_token" value="<?= e(admin_csrf_token()) ?>"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><label class="visually-hidden" for="enq-<?= (int)$r['id'] ?>">Status</label><select class="form-select form-select-sm" id="enq-<?= (int)$r['id'] ?>" name="status"><?php foreach(['new','in_progress','closed'] as $v): ?><option value="<?= e($v) ?>" <?= $r['status']===$v?'selected':'' ?>><?= e($v) ?></option><?php endforeach; ?></select><button class="btn btn-sm btn-outline-dark">Save</button></form></td><td><?= e($r['created_at']) ?></td></tr><?php endforeach; ?><?php if(!$rows): ?><tr><td colspan="6" class="text-center py-4 text-secondary">No enquiries match these filters.</td></tr><?php endif; ?></tbody></table></div><p class="small text-secondary"><?= $total ?> total · page <?= $page ?></p></div></section><?php admin_page_end();
+
+declare(strict_types=1);
+require_once __DIR__ . '/includes/ui.php';
+$notice = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  admin_verify_csrf();
+  $id = filter_var($_POST['id'] ?? null, FILTER_VALIDATE_INT);
+  $status = (string)($_POST['status'] ?? '');
+  if (!$id || !in_array($status, ['new', 'in_progress', 'closed'], true)) {
+    http_response_code(422);
+    exit('Invalid enquiry update.');
+  }
+  $stmt = $pdo->prepare('UPDATE enquiries SET status=? WHERE id=?');
+  $stmt->execute([$status, $id]);
+  $notice = 'Enquiry status saved.';
+}
+$page = max(1, (int)($_GET['page'] ?? 1));
+$limit = 25;
+$search = trim((string)($_GET['q'] ?? ''));
+$status = trim((string)($_GET['status'] ?? ''));
+$where = [];
+$params = [];
+if ($search !== '') {
+  $where[] = '(name LIKE ? OR phone LIKE ? OR email LIKE ? OR message LIKE ?)';
+  for ($i = 0; $i < 4; $i++) $params[] = '%' . $search . '%';
+}
+if ($status !== '' && in_array($status, ['new', 'in_progress', 'closed'], true)) {
+  $where[] = 'status=?';
+  $params[] = $status;
+}
+$whereSql = $where ? ' WHERE ' . implode(' AND ', $where) : '';
+$count = $pdo->prepare('SELECT COUNT(*) FROM enquiries' . $whereSql);
+$count->execute($params);
+$total = (int)$count->fetchColumn();
+$stmt = $pdo->prepare('SELECT id,name,email,phone,message,service_id,from_address,to_address,status,created_at FROM enquiries' . $whereSql . ' ORDER BY id DESC LIMIT ? OFFSET ?');
+foreach ($params as $i => $v) $stmt->bindValue($i + 1, $v);
+$stmt->bindValue(count($params) + 1, $limit, PDO::PARAM_INT);
+$stmt->bindValue(count($params) + 2, ($page - 1) * $limit, PDO::PARAM_INT);
+$stmt->execute();
+$rows = $stmt->fetchAll();
+admin_page_start('Enquiries'); ?><h1 class="h2 mb-4">Enquiries</h1><?php if ($notice): ?><div class="alert alert-success"><?= e($notice) ?></div><?php endif; ?><section class="card">
+  <div class="card-body">
+    <form class="row g-2 mb-3">
+      <div class="col-md-7"><label class="visually-hidden" for="q">Search enquiries</label><input class="form-control" id="q" name="q" value="<?= e($search) ?>" placeholder="Search name, phone, email or message"></div>
+      <div class="col-md-3"><label class="visually-hidden" for="statusFilter">Status</label><select class="form-select" id="statusFilter" name="status">
+          <option value="">All statuses</option><?php foreach (['new', 'in_progress', 'closed'] as $v): ?><option value="<?= e($v) ?>" <?= $status === $v ? 'selected' : '' ?>><?= e($v) ?></option><?php endforeach; ?>
+        </select></div>
+      <div class="col-md-2"><button class="btn btn-outline-dark w-100">Filter</button></div>
+    </form>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Contact</th>
+            <th>Move</th>
+            <th>Message</th>
+            <th>Status</th>
+            <th>Received</th>
+          </tr>
+        </thead>
+        <tbody><?php foreach ($rows as $r): ?><tr>
+              <td><?= e($r['name']) ?></td>
+              <td><?= e($r['phone']) ?><br><small><?= e($r['email']) ?></small></td>
+              <td><?= e($r['from_address']) ?> → <?= e($r['to_address']) ?></td>
+              <td><?= e(mb_strimwidth((string)$r['message'], 0, 100, '…')) ?></td>
+              <td>
+                <form method="post" class="d-flex gap-1"><input type="hidden" name="_csrf_token" value="<?= e(admin_csrf_token()) ?>"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><label class="visually-hidden" for="enq-<?= (int)$r['id'] ?>">Status</label><select class="form-select form-select-sm" id="enq-<?= (int)$r['id'] ?>" name="status"><?php foreach (['new', 'in_progress', 'closed'] as $v): ?><option value="<?= e($v) ?>" <?= $r['status'] === $v ? 'selected' : '' ?>><?= e($v) ?></option><?php endforeach; ?></select><button class="btn btn-sm btn-outline-dark">Save</button></form>
+              </td>
+              <td><?= e($r['created_at']) ?></td>
+            </tr><?php endforeach; ?><?php if (!$rows): ?><tr>
+              <td colspan="6" class="text-center py-4 text-secondary">No enquiries match these filters.</td>
+            </tr><?php endif; ?></tbody>
+      </table>
+    </div>
+    <p class="small text-secondary"><?= $total ?> total · page <?= $page ?></p>
+  </div>
+</section><?php admin_page_end();

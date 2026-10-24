@@ -1,10 +1,95 @@
 <?php
-declare(strict_types=1);require_once __DIR__.'/includes/ui.php';require_once dirname(__DIR__).'/backend/repositories/BookingRepository.php';
-$notice='';$error='';
-if($_SERVER['REQUEST_METHOD']==='POST'){
- admin_verify_csrf();admin_require_role(['admin']);$bookingId=filter_var($_POST['booking_id']??null,FILTER_VALIDATE_INT);$action=(string)($_POST['action']??'');
- if(!$bookingId||$bookingId<1){$error='Choose a valid booking.';}else{try{$repo=new BookingRepository($pdo);if($action==='status'){$status=(string)($_POST['status']??'');$note=trim((string)($_POST['note']??''));$repo->transition((int)$bookingId,$status,(int)$_SESSION['user_id'],$note===''?null:$note);$notice='Booking status updated and audit history recorded.';}elseif($action==='assign'){$staffId=filter_var($_POST['staff_id']??null,FILTER_VALIDATE_INT);if(!$staffId||$staffId<1)throw new InvalidArgumentException('Choose an active staff member.');$repo->assignStaff((int)$bookingId,(int)$staffId,(int)$_SESSION['user_id'],trim((string)($_POST['note']??''))?:null);$notice='Staff assignment saved.';}else{$error='Unknown booking action.';}}catch(Throwable $e){error_log('[RoomShift admin booking] '.$e->getMessage());$error='Booking operation could not be completed.';}}
+
+declare(strict_types=1);
+require_once __DIR__ . '/includes/ui.php';
+require_once dirname(__DIR__) . '/backend/repositories/BookingRepository.php';
+$notice = '';
+$error = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  admin_verify_csrf();
+  admin_require_role(['admin']);
+  $bookingId = filter_var($_POST['booking_id'] ?? null, FILTER_VALIDATE_INT);
+  $action = (string)($_POST['action'] ?? '');
+  if (!$bookingId || $bookingId < 1) {
+    $error = 'Choose a valid booking.';
+  } else {
+    try {
+      $repo = new BookingRepository($pdo);
+      if ($action === 'status') {
+        $status = (string)($_POST['status'] ?? '');
+        $note = trim((string)($_POST['note'] ?? ''));
+        $repo->transition((int)$bookingId, $status, (int)$_SESSION['user_id'], $note === '' ? null : $note);
+        $notice = 'Booking status updated and audit history recorded.';
+      } elseif ($action === 'assign') {
+        $staffId = filter_var($_POST['staff_id'] ?? null, FILTER_VALIDATE_INT);
+        if (!$staffId || $staffId < 1) throw new InvalidArgumentException('Choose an active staff member.');
+        $repo->assignStaff((int)$bookingId, (int)$staffId, (int)$_SESSION['user_id'], trim((string)($_POST['note'] ?? '')) ?: null);
+        $notice = 'Staff assignment saved.';
+      } else {
+        $error = 'Unknown booking action.';
+      }
+    } catch (Throwable $e) {
+      error_log('[RoomShift admin booking] ' . $e->getMessage());
+      $error = 'Booking operation could not be completed.';
+    }
+  }
 }
-$page=max(1,(int)($_GET['page']??1));$search=trim((string)($_GET['q']??''));$status=trim((string)($_GET['status']??''));$repo=new BookingRepository($pdo);$result=$repo->list(['page'=>$page,'limit'=>25,'search'=>$search,'status'=>$status]);$staff=$pdo->query("SELECT id,name FROM staff WHERE status='active' ORDER BY name")->fetchAll();
-$history=[];foreach($result['items'] as $booking){$history[$booking['id']]=$repo->history((int)$booking['id']);}
-admin_page_start('Bookings'); ?><h1 class="h2 mb-4">Bookings</h1><?php if($notice): ?><div class="alert alert-success"><?= e($notice) ?></div><?php endif; ?><?php if($error): ?><div class="alert alert-danger"><?= e($error) ?></div><?php endif; ?><section class="card"><div class="card-body"><form class="row g-2 mb-3"><div class="col-md-7"><label class="visually-hidden" for="q">Search bookings</label><input class="form-control" id="q" name="q" value="<?= e($search) ?>" placeholder="Search customer, phone or reference"></div><div class="col-md-3"><label class="visually-hidden" for="status">Status</label><select class="form-select" id="status" name="status"><option value="">All statuses</option><?php foreach(['enquiry','quote','confirmed','assigned','in_transit','completed','cancelled'] as $s): ?><option value="<?= e($s) ?>" <?= $status===$s?'selected':'' ?>><?= e(ucwords(str_replace('_',' ',$s))) ?></option><?php endforeach; ?></select></div><div class="col-md-2"><button class="btn btn-outline-dark w-100">Filter</button></div></form><div class="table-responsive"><table class="table"><thead><tr><th>Booking</th><th>Customer</th><th>Total</th><th>Status</th><th>Tracking</th><th>Operations</th></tr></thead><tbody><?php foreach($result['items'] as $b): ?><tr><td><strong><?= e($b['booking_ref']) ?></strong><br><small>#<?= (int)$b['id'] ?></small></td><td><?= e($b['customer_name']) ?><br><small><?= e($b['customer_phone']) ?></small></td><td>₹<?= e($b['total']) ?></td><td><?= e($b['status']) ?><?= $b['staff_name']?' · '.e($b['staff_name']):'' ?></td><td><code><?= e($b['tracking_code']) ?></code></td><td><?php if($_SESSION['role']==='admin'): ?><form method="post" class="d-flex flex-wrap gap-2 mb-2"><input type="hidden" name="_csrf_token" value="<?= e(admin_csrf_token()) ?>"><input type="hidden" name="booking_id" value="<?= (int)$b['id'] ?>"><input type="hidden" name="action" value="status"><select class="form-select form-select-sm w-auto" name="status" aria-label="Change booking status"><?php foreach(['enquiry','quote','confirmed','assigned','in_transit','completed','cancelled'] as $s): ?><option value="<?= e($s) ?>" <?= $b['status']===$s?'selected':'' ?>><?= e($s) ?></option><?php endforeach; ?></select><input class="form-control form-control-sm" name="note" maxlength="500" placeholder="Audit note"><button class="btn btn-sm btn-primary">Update</button></form><form method="post" class="d-flex flex-wrap gap-2"><input type="hidden" name="_csrf_token" value="<?= e(admin_csrf_token()) ?>"><input type="hidden" name="booking_id" value="<?= (int)$b['id'] ?>"><input type="hidden" name="action" value="assign"><select class="form-select form-select-sm w-auto" name="staff_id" required><option value="">Assign staff…</option><?php foreach($staff as $s): ?><option value="<?= (int)$s['id'] ?>"><?= e($s['name']) ?></option><?php endforeach; ?></select><button class="btn btn-sm btn-outline-dark">Assign</button></form><?php else: ?>Admin permission is required for changes.<?php endif; ?></td></tr><tr><td colspan="6"><details><summary>Audit history (<?= count($history[$b['id']]) ?>)</summary><ul class="small mt-2 mb-0"><?php foreach($history[$b['id']] as $h): ?><li><?= e($h['created_at']) ?> · <?= e($h['from_status']??'new') ?> → <?= e($h['to_status']) ?><?= $h['note']?' · '.e($h['note']):'' ?><?= $h['changed_by']?' · '.e($h['changed_by']):'' ?></li><?php endforeach; ?></ul></details></td></tr><?php endforeach; ?><?php if(!$result['items']): ?><tr><td colspan="6" class="text-center text-secondary py-4">No bookings match these filters.</td></tr><?php endif; ?></tbody></table></div><p class="small text-secondary"><?= (int)$result['pagination']['total'] ?> bookings · page <?= $page ?></p></div></section><?php admin_page_end();
+$page = max(1, (int)($_GET['page'] ?? 1));
+$search = trim((string)($_GET['q'] ?? ''));
+$status = trim((string)($_GET['status'] ?? ''));
+$repo = new BookingRepository($pdo);
+$result = $repo->list(['page' => $page, 'limit' => 25, 'search' => $search, 'status' => $status]);
+$staff = $pdo->query("SELECT id,name FROM staff WHERE status='active' ORDER BY name")->fetchAll();
+$history = [];
+foreach ($result['items'] as $booking) {
+  $history[$booking['id']] = $repo->history((int)$booking['id']);
+}
+admin_page_start('Bookings'); ?><h1 class="h2 mb-4">Bookings</h1><?php if ($notice): ?><div class="alert alert-success"><?= e($notice) ?></div><?php endif; ?><?php if ($error): ?><div class="alert alert-danger"><?= e($error) ?></div><?php endif; ?><section class="card">
+  <div class="card-body">
+    <form class="row g-2 mb-3">
+      <div class="col-md-7"><label class="visually-hidden" for="q">Search bookings</label><input class="form-control" id="q" name="q" value="<?= e($search) ?>" placeholder="Search customer, phone or reference"></div>
+      <div class="col-md-3"><label class="visually-hidden" for="status">Status</label><select class="form-select" id="status" name="status">
+          <option value="">All statuses</option><?php foreach (['enquiry', 'quote', 'confirmed', 'assigned', 'in_transit', 'completed', 'cancelled'] as $s): ?><option value="<?= e($s) ?>" <?= $status === $s ? 'selected' : '' ?>><?= e(ucwords(str_replace('_', ' ', $s))) ?></option><?php endforeach; ?>
+        </select></div>
+      <div class="col-md-2"><button class="btn btn-outline-dark w-100">Filter</button></div>
+    </form>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Booking</th>
+            <th>Customer</th>
+            <th>Total</th>
+            <th>Status</th>
+            <th>Tracking</th>
+            <th>Operations</th>
+          </tr>
+        </thead>
+        <tbody><?php foreach ($result['items'] as $b): ?><tr>
+              <td><strong><?= e($b['booking_ref']) ?></strong><br><small>#<?= (int)$b['id'] ?></small></td>
+              <td><?= e($b['customer_name']) ?><br><small><?= e($b['customer_phone']) ?></small></td>
+              <td>₹<?= e($b['total']) ?></td>
+              <td><?= e($b['status']) ?><?= $b['staff_name'] ? ' · ' . e($b['staff_name']) : '' ?></td>
+              <td><code><?= e($b['tracking_code']) ?></code></td>
+              <td><?php if ($_SESSION['role'] === 'admin'): ?><form method="post" class="d-flex flex-wrap gap-2 mb-2"><input type="hidden" name="_csrf_token" value="<?= e(admin_csrf_token()) ?>"><input type="hidden" name="booking_id" value="<?= (int)$b['id'] ?>"><input type="hidden" name="action" value="status"><select class="form-select form-select-sm w-auto" name="status" aria-label="Change booking status"><?php foreach (['enquiry', 'quote', 'confirmed', 'assigned', 'in_transit', 'completed', 'cancelled'] as $s): ?><option value="<?= e($s) ?>" <?= $b['status'] === $s ? 'selected' : '' ?>><?= e($s) ?></option><?php endforeach; ?></select><input class="form-control form-control-sm" name="note" maxlength="500" placeholder="Audit note"><button class="btn btn-sm btn-primary">Update</button></form>
+                  <form method="post" class="d-flex flex-wrap gap-2"><input type="hidden" name="_csrf_token" value="<?= e(admin_csrf_token()) ?>"><input type="hidden" name="booking_id" value="<?= (int)$b['id'] ?>"><input type="hidden" name="action" value="assign"><select class="form-select form-select-sm w-auto" name="staff_id" required>
+                      <option value="">Assign staff…</option><?php foreach ($staff as $s): ?><option value="<?= (int)$s['id'] ?>"><?= e($s['name']) ?></option><?php endforeach; ?>
+                    </select><button class="btn btn-sm btn-outline-dark">Assign</button></form><?php else: ?>Admin permission is required for changes.<?php endif; ?>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="6">
+                <details>
+                  <summary>Audit history (<?= count($history[$b['id']]) ?>)</summary>
+                  <ul class="small mt-2 mb-0"><?php foreach ($history[$b['id']] as $h): ?><li><?= e($h['created_at']) ?> · <?= e($h['from_status'] ?? 'new') ?> → <?= e($h['to_status']) ?><?= $h['note'] ? ' · ' . e($h['note']) : '' ?><?= $h['changed_by'] ? ' · ' . e($h['changed_by']) : '' ?></li><?php endforeach; ?></ul>
+                </details>
+              </td>
+            </tr><?php endforeach; ?><?php if (!$result['items']): ?><tr>
+              <td colspan="6" class="text-center text-secondary py-4">No bookings match these filters.</td>
+            </tr><?php endif; ?>
+        </tbody>
+      </table>
+    </div>
+    <p class="small text-secondary"><?= (int)$result['pagination']['total'] ?> bookings · page <?= $page ?></p>
+  </div>
+</section><?php admin_page_end();

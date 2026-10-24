@@ -1,7 +1,6 @@
 <?php
 declare(strict_types=1);
 
-/** Minimal .env reader for XAMPP; process environment always takes precedence. */
 function roomshift_load_env(?string $path = null): void
 {
     $path ??= dirname(__DIR__) . DIRECTORY_SEPARATOR . '.env';

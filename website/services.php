@@ -1,1 +1,18 @@
-<?php $pageTitle='Moving services | RoomShift';$pageMeta='Explore the active moving services available from RoomShift.';include __DIR__.'/includes/header.php';$result=web_catalog(static fn()=>web_cms()->listServices(['limit'=>100]));include __DIR__.'/includes/navbar.php';$services=$result['items']??[]; ?><main class="container section-space"><header class="page-heading"><p class="eyebrow">Our services</p><h1>Services for your next move</h1><p>Choose a service to start a quote based on your move details.</p></header><?php if($GLOBALS['webDataError']): ?><div class="alert alert-warning"><?= e($t('error')) ?></div><?php elseif(!$services): ?><div class="empty-panel"><?= e($t('empty')) ?></div><?php else: ?><div class="row g-4"><?php foreach($services as $service): ?><div class="col-md-6 col-xl-4"><article class="service-card h-100"><h2 class="h4"><?= e($service['name']) ?></h2><p><?= e($service['description']) ?></p><p class="small text-secondary">Pricing is calculated from current server-side rules.</p><a class="btn btn-gold mt-auto" href="quote.php?service_id=<?= (int)$service['id'] ?>">Get a quote</a></article></div><?php endforeach; ?></div><?php endif; ?></main><?php include __DIR__.'/includes/footer.php';
+<?php $pageTitle = 'Moving services | RoomShift';
+$pageMeta = 'Explore the active moving services available from RoomShift.';
+include __DIR__ . '/includes/header.php';
+$result = web_catalog(static fn() => web_cms()->listServices(['limit' => 100]));
+include __DIR__ . '/includes/navbar.php';
+$services = $result['items']
+?? []; ?><main class="container section-space"><header class="page-heading"><p class="eyebrow">Our services</p><h1>Services for your next move</h1><p>Choose a service to start a quote based on your move details.</p></header><?php if (
+    $GLOBALS['webDataError']
+): ?><div class="alert alert-warning"><?= e($t('error')) ?></div><?php elseif (
+        !$services
+    ): ?><div class="empty-panel"><?= e($t(
+    'empty',
+)) ?></div><?php else: ?><div class="row g-4"><?php foreach ($services as $service): ?><div class="col-md-6 col-xl-4"><article class="service-card h-100"><h2 class="h4"><?= e(
+    $service['name'],
+) ?></h2><p><?= e(
+    $service['description'],
+) ?></p><p class="small text-secondary">Pricing is calculated from current server-side rules.</p><a class="btn btn-gold mt-auto" href="quote.php?service_id=<?= (int) $service['id'] ?>">Get a quote</a></article></div><?php endforeach; ?></div><?php endif; ?></main><?php include
+    __DIR__ . '/includes/footer.php';

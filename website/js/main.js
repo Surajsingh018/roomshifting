@@ -1,32 +1,42 @@
 "use strict";
 
 const apiBase = document.body.dataset.apiBase;
-const makeKey = () => (window.crypto && crypto.randomUUID)
-  ? crypto.randomUUID()
-  : `rs-${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+const makeKey = () =>
+  window.crypto && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `rs-${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
 
 async function postJson(path, payload) {
   const response = await fetch(`${apiBase}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify(payload),
-    credentials: "same-origin"
+    credentials: "same-origin",
   });
   let envelope;
-  try { envelope = await response.json(); } catch { throw new Error("The server returned an unreadable response."); }
-  if (!response.ok || envelope.success !== true) throw new Error(envelope.message || "The request could not be completed.");
+  try {
+    envelope = await response.json();
+  } catch {
+    throw new Error("The server returned an unreadable response.");
+  }
+  if (!response.ok || envelope.success !== true)
+    throw new Error(envelope.message || "The request could not be completed.");
   return envelope.data;
 }
 
 function parseInventory(form) {
   const field = form.querySelector("#inventory");
   if (!field || !field.value.trim()) return [];
-  return field.value.split(/\r?\n/).filter(Boolean).map((line) => {
-    const [item, quantityText] = line.split(",");
-    const quantity = Number.parseInt(quantityText, 10);
-    if (!item || !Number.isInteger(quantity) || quantity < 1) throw new Error("Inventory rows must use item,quantity format.");
-    return { item: item.trim(), quantity };
-  });
+  return field.value
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((line) => {
+      const [item, quantityText] = line.split(",");
+      const quantity = Number.parseInt(quantityText, 10);
+      if (!item || !Number.isInteger(quantity) || quantity < 1)
+        throw new Error("Inventory rows must use item,quantity format.");
+      return { item: item.trim(), quantity };
+    });
 }
 
 function renderQuote(container, breakdown) {
@@ -40,14 +50,17 @@ function renderQuote(container, breakdown) {
     ["Packing", breakdown.packing_charges],
     ["Subtotal", breakdown.subtotal],
     [`GST (${breakdown.gst_percent}%)`, breakdown.gst],
-    ["Total", breakdown.total]
+    ["Total", breakdown.total],
   ];
   entries.forEach(([label, amount], index) => {
     const term = document.createElement("dt");
     const value = document.createElement("dd");
     term.textContent = label;
     value.textContent = `₹${amount}`;
-    if (index === entries.length - 1) { term.className = "quote-total-label"; value.className = "quote-total"; }
+    if (index === entries.length - 1) {
+      term.className = "quote-total-label";
+      value.className = "quote-total";
+    }
     list.append(term, value);
   });
   container.append(list);
@@ -87,48 +100,70 @@ document.querySelectorAll(".js-enquiry-form").forEach((form) => {
         return;
       }
       enquiryToken = enquiry.enquiry_token;
-      if (typeof enquiryToken !== "string" || !/^[a-f0-9]{64}$/.test(enquiryToken)) {
-        throw new Error("The server did not return a secure enquiry reference. Please retry.");
+      if (
+        typeof enquiryToken !== "string" ||
+        !/^[a-f0-9]{64}$/.test(enquiryToken)
+      ) {
+        throw new Error(
+          "The server did not return a secure enquiry reference. Please retry.",
+        );
       }
       status.textContent = "Enquiry saved. Calculating your server quote…";
-      const quote = await postJson("/quotes/calculate", { enquiry_id: enquiry.id, enquiry_token: enquiryToken });
+      const quote = await postJson("/quotes/calculate", {
+        enquiry_id: enquiry.id,
+        enquiry_token: enquiryToken,
+      });
       quoteId = quote.quote_id;
       quoteToken = quote.quote_token;
-      if (typeof quoteToken !== "string" || !/^[a-f0-9]{64}$/.test(quoteToken)) {
-        throw new Error("The server did not return a secure quote reference. Please retry.");
+      if (
+        typeof quoteToken !== "string" ||
+        !/^[a-f0-9]{64}$/.test(quoteToken)
+      ) {
+        throw new Error(
+          "The server did not return a secure quote reference. Please retry.",
+        );
       }
       renderQuote(quoteResult, quote.breakdown);
       createBooking.hidden = false;
-      status.textContent = "Your quote is ready. Review the breakdown and create a booking when you are ready.";
+      status.textContent =
+        "Your quote is ready. Review the breakdown and create a booking when you are ready.";
       status.className = "alert alert-success mt-3";
     } catch (error) {
-      status.textContent = error.message || "We could not submit your request. Please try again.";
+      status.textContent =
+        error.message || "We could not submit your request. Please try again.";
       status.className = "alert alert-danger mt-3";
     } finally {
       submit.disabled = false;
     }
   });
 
-  if (createBooking) createBooking.addEventListener("click", async () => {
-    if (!quoteId) return;
-    createBooking.disabled = true;
-    bookingResult.textContent = "Creating your booking…";
-    try {
-      const booking = await postJson("/bookings", { quote_id: quoteId, quote_token: quoteToken, idempotency_key: `${idempotencyKey}-booking` });
-      bookingResult.replaceChildren();
-      const paragraph = document.createElement("p");
-      paragraph.textContent = `Booking ${booking.booking_ref} is recorded with status “${booking.status}”.`;
-      const code = document.createElement("p");
-      code.textContent = `Keep this tracking code private: ${booking.tracking_code}`;
-      const link = document.createElement("a");
-      link.href = `${apiBase}/bookings/track?code=${encodeURIComponent(booking.tracking_code)}`;
-      link.textContent = "Open live tracking";
-      link.rel = "noopener";
-      bookingResult.append(paragraph, code, link);
-    } catch (error) {
-      bookingResult.textContent = error.message || "The booking could not be created. Retry safely with the same request.";
-    } finally {
-      createBooking.disabled = false;
-    }
-  });
+  if (createBooking)
+    createBooking.addEventListener("click", async () => {
+      if (!quoteId) return;
+      createBooking.disabled = true;
+      bookingResult.textContent = "Creating your booking…";
+      try {
+        const booking = await postJson("/bookings", {
+          quote_id: quoteId,
+          quote_token: quoteToken,
+          idempotency_key: `${idempotencyKey}-booking`,
+        });
+        bookingResult.replaceChildren();
+        const paragraph = document.createElement("p");
+        paragraph.textContent = `Booking ${booking.booking_ref} is recorded with status “${booking.status}”.`;
+        const code = document.createElement("p");
+        code.textContent = `Keep this tracking code private: ${booking.tracking_code}`;
+        const link = document.createElement("a");
+        link.href = `${apiBase}/bookings/track?code=${encodeURIComponent(booking.tracking_code)}`;
+        link.textContent = "Open live tracking";
+        link.rel = "noopener";
+        bookingResult.append(paragraph, code, link);
+      } catch (error) {
+        bookingResult.textContent =
+          error.message ||
+          "The booking could not be created. Retry safely with the same request.";
+      } finally {
+        createBooking.disabled = false;
+      }
+    });
 });

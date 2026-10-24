@@ -1,2 +1,13 @@
 <?php http_response_code(404); ?>
-<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Page not found | RoomShift</title><link href="../website/css/style.css" rel="stylesheet"><main class="container py-5"><h1>Page not found</h1><p>The page may have moved or no longer exists.</p><a href="../">Return to RoomShift</a></main></html>
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Page not found | RoomShift</title>
+<link href="../website/css/style.css" rel="stylesheet">
+<main class="container py-5">
+  <h1>Page not found</h1>
+  <p>The page may have moved or no longer exists.</p><a href="../">Return to RoomShift</a>
+</main>
+
+</html>

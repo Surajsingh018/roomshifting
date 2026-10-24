@@ -1,1 +1,39 @@
-<?php $pageTitle='How moving with RoomShift works';$pageMeta='See the steps from sharing your move details to tracking a confirmed booking.';include __DIR__.'/includes/header.php';include __DIR__.'/includes/navbar.php'; ?><main class="container section-space"><header class="page-heading"><p class="eyebrow">Simple steps</p><h1>How it works</h1><p>Your price and booking status come from the RoomShift backend, so the quote you receive is the quote you can confirm.</p></header><ol class="process-list"><li><span>01</span><div><h2 class="h4">Share your move details</h2><p>Choose an active service and enter your origin, destination, distance, floors, and packing needs.</p></div></li><li><span>02</span><div><h2 class="h4">Review your quote</h2><p>The server applies the current pricing rule and returns an itemized breakdown.</p></div></li><li><span>03</span><div><h2 class="h4">Confirm your booking</h2><p>Turn a valid quote into a booking. You receive a booking reference and private tracking code.</p></div></li><li><span>04</span><div><h2 class="h4">Follow your move</h2><p>Use the tracking code to see the latest status and its audit timeline.</p></div></li></ol><a href="quote.php" class="btn btn-gold btn-lg mt-4">Start a quote</a></main><?php include __DIR__.'/includes/footer.php';
+<?php $pageTitle = 'How moving with RoomShift works';
+$pageMeta = 'See the steps from sharing your move details to tracking a confirmed booking.';
+include __DIR__ . '/includes/header.php';
+include
+  __DIR__
+  . '/includes/navbar.php'; ?><main class="container section-space">
+  <header class="page-heading">
+    <p class="eyebrow">Simple steps</p>
+    <h1>How it works</h1>
+    <p>Your price and booking status come from the RoomShift backend, so the quote you receive is the quote you can confirm.</p>
+  </header>
+  <ol class="process-list">
+    <li><span>01</span>
+      <div>
+        <h2 class="h4">Share your move details</h2>
+        <p>Choose an active service and enter your origin, destination, distance, floors, and packing needs.</p>
+      </div>
+    </li>
+    <li><span>02</span>
+      <div>
+        <h2 class="h4">Review your quote</h2>
+        <p>The server applies the current pricing rule and returns an itemized breakdown.</p>
+      </div>
+    </li>
+    <li><span>03</span>
+      <div>
+        <h2 class="h4">Confirm your booking</h2>
+        <p>Turn a valid quote into a booking. You receive a booking reference and private tracking code.</p>
+      </div>
+    </li>
+    <li><span>04</span>
+      <div>
+        <h2 class="h4">Follow your move</h2>
+        <p>Use the tracking code to see the latest status and its audit timeline.</p>
+      </div>
+    </li>
+  </ol><a href="quote.php" class="btn btn-gold btn-lg mt-4">Start a quote</a>
+</main><?php include
+          __DIR__ . '/includes/footer.php';

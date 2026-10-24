@@ -1,7 +1,12 @@
 <?php
+
 declare(strict_types=1);
 require_once __DIR__ . '/includes/db.php';
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header('Allow: POST'); http_response_code(405); exit('Method not allowed.'); }
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Allow: POST');
+    http_response_code(405);
+    exit('Method not allowed.');
+}
 admin_verify_csrf();
 $_SESSION = [];
 if (ini_get('session.use_cookies')) {

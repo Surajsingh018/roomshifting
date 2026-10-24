@@ -21,9 +21,7 @@ $heroSlides = array_slice($services, 0, 4);
           <p class="lead mt-3">A thoughtful moving experience, with clear steps and pricing calculated for your move.</p>
           <div class="d-flex flex-wrap gap-3 mt-4"><a class="btn btn-gold btn-lg" href="quote.php"><?= e($t(
                                                                                                       'quote',
-                                                                                                    )) ?></a><a class="btn btn-outline-dark btn-lg" href="how-it-works.php"><?= e($t(
-                                                                          'how',
-                                                                        )) ?></a></div>
+                                                                                                    )) ?></a><a class="btn btn-outline-dark btn-lg" href="how-it-works.php"><?= e($t('how')) ?></a></div>
           <div class="hero-assurance mt-4"><span>Clear quote</span><span>Careful handling</span><span>Track your move</span></div>
         </div>
         <div class="col-lg-5">
@@ -33,19 +31,17 @@ $heroSlides = array_slice($services, 0, 4);
               <div class="carousel-indicators"><?php foreach ($heroSlides as $index => $slide): ?><button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="<?= (int) $index ?>" class="<?= $index
                                                                                                                                                                                                         === 0
                                                                                                                                                                                                         ? 'active'
-                                                                                                                                                                                                        : '' ?>" <?= $index === 0 ? 'aria-current="true"' : '' ?> aria-label="Slide <?= (int) ($index + 1) ?>: <?= e(
-                                                                                                                  $slide['name'],
-                                                                                                                ) ?>"></button><?php endforeach; ?></div>
+                                                                                                                                                                                                        : '' ?>" <?= $index === 0 ? 'aria-current="true"' : '' ?> aria-label="Slide <?= (int) (
+                                                                                                    $index + 1
+                                                                                                  ) ?>: <?= e($slide['name']) ?>"></button><?php endforeach; ?></div>
               <div class="carousel-inner"><?php foreach ($heroSlides as $index => $slide): ?><div class="carousel-item <?= $index
                                                                                                                           === 0
                                                                                                                           ? 'active'
                                                                                                                           : '' ?>" aria-roledescription="slide" aria-label="<?= (int) ($index + 1) ?> of <?= count(
-                                                                                          $heroSlides,
-                                                                                        ) ?>">
+                                                                                                        $heroSlides,
+                                                                                                      ) ?>">
                     <article class="hero-slide-card">
-                      <p class="eyebrow">Service <?= (int) ($index + 1) ?> of <?= count(
-                                                                                $heroSlides,
-                                                                              ) ?></p>
+                      <p class="eyebrow">Service <?= (int) ($index + 1) ?> of <?= count($heroSlides) ?></p>
                       <h2><?= e($slide['name']) ?></h2>
                       <p><?= e(
                                               $slide['description'],
@@ -56,18 +52,14 @@ $heroSlides = array_slice($services, 0, 4);
             </div><?php elseif (
                   $heroSlides
                 ): ?><div class="hero-art" aria-hidden="true"><span class="hero-art-box hero-art-box-one"></span><span class="hero-art-box hero-art-box-two"></span><span class="hero-art-sun"></span></div><?php else: ?><div class="empty-panel" role="status"><?= e($t(
-                                                                                                                                                                                                                                                        'empty',
-                                                                                                                                                                                                                                                      )) ?></div><?php endif; ?>
+                                                                                                                                                                                                                                                                  'empty',
+                                                                                                                                                                                                                                                                )) ?></div><?php endif; ?>
         </div>
       </div>
     </div>
   </section>
-  <?php if (
-    $GLOBALS['webDataError']
-  ): ?><div class="container pt-4">
-      <div class="alert alert-warning" role="status"><?= e($t(
-                                                        'error',
-                                                      )) ?></div>
+  <?php if ($GLOBALS['webDataError']): ?><div class="container pt-4">
+      <div class="alert alert-warning" role="status"><?= e($t('error')) ?></div>
     </div><?php endif; ?>
   <?php if (
     $banners
@@ -75,21 +67,19 @@ $heroSlides = array_slice($services, 0, 4);
           <div class="row align-items-center g-0">
             <div class="col-md-8 p-4">
               <p class="eyebrow mb-2">Current campaign</p>
-              <h2 class="h3"><?= e(
-                                                                        $banner['title'],
-                                                                      ) ?></h2><?php if ($banner['body']): ?><p class="mb-2"><?= e($banner['body']) ?></p><?php endif; ?><?php if (
-                                                                                                      $banner['ends_at']
-                                                                                                    ): ?><small>Available until <?= e(date(
-                                                                                                        'M j, Y',
-                                                                                                        strtotime($banner['ends_at']),
-                                                                                                      )) ?></small><?php endif; ?>
-            </div><?php if (
-                                                                        $banner['image_path']
-                                                                      ): ?><div class="col-md-4"><img class="campaign-image" src="<?= e(
-                                                                          $banner['image_path'],
-                                                                        ) ?>" alt="Campaign artwork for <?= e(
-                                                                          $banner['title'],
-                                                                        ) ?>" loading="lazy" decoding="async"></div><?php endif; ?>
+              <h2 class="h3"><?= e($banner['title']) ?></h2><?php if ($banner['body']): ?><p class="mb-2"><?= e(
+                                                                                                            $banner['body'],
+                                                                                                          ) ?></p><?php endif; ?><?php if (
+                                                                                                $banner['ends_at']
+                                                                                              ): ?><small>Available until <?= e(date(
+                                                                                                    'M j, Y',
+                                                                                                    strtotime($banner['ends_at']),
+                                                                                                  )) ?></small><?php endif; ?>
+            </div><?php if ($banner['image_path']): ?><div class="col-md-4"><img class="campaign-image" src="<?= e(
+                                                                                                                $banner['image_path'],
+                                                                                                              ) ?>" alt="Campaign artwork for <?= e(
+                                                                            $banner['title'],
+                                                                          ) ?>" loading="lazy" decoding="async"></div><?php endif; ?>
           </div>
         </article><?php endforeach; ?></section><?php endif; ?>
   <section class="container section-space" aria-labelledby="servicesHeading">
@@ -98,33 +88,25 @@ $heroSlides = array_slice($services, 0, 4);
         <p class="eyebrow">Move with confidence</p>
         <h2 id="servicesHeading">Services shaped around your move</h2>
       </div><a href="services.php" class="text-link">Explore all services</a>
-    </div><?php if (
-            !$services
-          ): ?><div class="empty-panel"><?= e($t(
-                                'empty',
-                              )) ?></div><?php else: ?><div class="row g-4"><?php foreach ($services as $service): ?><div class="col-md-6 col-xl-4">
+    </div><?php if (!$services): ?><div class="empty-panel"><?= e($t(
+                                                              'empty',
+                                                            )) ?></div><?php else: ?><div class="row g-4"><?php foreach ($services as $service): ?><div class="col-md-6 col-xl-4">
             <article class="service-card h-100">
               <div class="service-card-mark" aria-hidden="true">↗</div>
-              <h3 class="h4"><?= e(
-                                                  $service['name'],
-                                                ) ?></h3>
+              <h3 class="h4"><?= e($service['name']) ?></h3>
               <p><?= e(
-                                                  $service['description'],
-                                                ) ?></p><a class="btn btn-outline-dark mt-auto" href="quote.php?service_id=<?= (int) $service['id'] ?>">Get a quote <span aria-hidden="true">→</span></a>
+                                                      $service['description'],
+                                                    ) ?></p><a class="btn btn-outline-dark mt-auto" href="quote.php?service_id=<?= (int) $service['id'] ?>">Get a quote <span aria-hidden="true">→</span></a>
             </article>
           </div><?php endforeach; ?></div><?php endif; ?>
   </section>
-  <?php if (
-    $offers
-  ): ?><section class="offers-band py-5">
+  <?php if ($offers): ?><section class="offers-band py-5">
       <div class="container">
         <p class="eyebrow">Seasonal offers</p>
         <h2 class="h2 mb-4">Available campaigns</h2>
         <div class="row g-3"><?php foreach ($offers as $offer): ?><div class="col-md-6 col-lg-4">
               <article class="offer-card h-100">
-                <h3 class="h5"><?= e(
-                                  $offer['title'],
-                                ) ?></h3>
+                <h3 class="h5"><?= e($offer['title']) ?></h3>
                 <p><?= e($offer['description']) ?></p><?php if ($offer['ends_at']): ?><small>Offer ends <?= e(date(
                                                                                                           'M j, Y',
                                                                                                           strtotime($offer['ends_at']),
